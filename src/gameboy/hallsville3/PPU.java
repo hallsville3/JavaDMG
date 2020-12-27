@@ -43,8 +43,7 @@ public class PPU {
     public Color getPaletteColor(char colorID, char address) {
         char palette = memory.read(address);
         char colorBitShift = 0;
-        switch (colorID) {
-            case 0 -> colorBitShift = 0;
+        switch (colorID) { // Case 0 gives 0
             case 1 -> colorBitShift = 2;
             case 2 -> colorBitShift = 4;
             case 3 -> colorBitShift = 6;
@@ -55,18 +54,13 @@ public class PPU {
 
         Color result = Color.WHITE;
 
-        switch (color) {
-            case 0 -> result = Color.WHITE;
+        switch (color) { // Case 0 gives White
             case 1 -> result = new Color(161, 161, 161);
             case 2 -> result = Color.DARK_GRAY;
             case 3 -> result = Color.BLACK;
         }
 
         return result;
-    }
-
-    public void setInterrupt(int i) {
-        memory.write(0xFF0F, (char) (memory.read(0xFF0F) | 1 << i));
     }
 
     public void doCycle(int cpuCycles) {
@@ -89,7 +83,7 @@ public class PPU {
                         drawScanline();
                         mode = 0;
                         if ((memory.read(0xFF41) & (1 << 3)) == 1 << 3) { // Do LCDC interrupt
-                            setInterrupt(1);
+                            memory.setInterrupt(1);
                         }
                     }
                 }
@@ -101,17 +95,17 @@ public class PPU {
 
                         if (memory.read(0xFF44) == 144) {
                             // Vblank interrupt
-                            setInterrupt(0);
+                            memory.setInterrupt(0);
                             // Switch to VBLANK
                             mode = 1;
                             if ((memory.read(0xFF41) & (1 << 4)) == 1 << 4) { // Do LCDC interrupt
-                                setInterrupt(1);
+                                memory.setInterrupt(1);
                             }
                         } else {
                             // Switch to OAM Read of next line
                             mode = 2;
                             if ((memory.read(0xFF41) & (1 << 5)) == 1 << 5) { // Do LCDC interrupt
-                                setInterrupt(1);
+                                memory.setInterrupt(1);
                             }
                         }
                     }
@@ -127,7 +121,7 @@ public class PPU {
                             memory.write(0xFF44, (char) 0);
                             mode = 2;
                             if ((memory.read(0xFF41) & (1 << 5)) == 1 << 5) { // Do LCDC interrupt
-                                setInterrupt(1);
+                                memory.setInterrupt(1);
                             }
                         }
                     }
@@ -137,7 +131,7 @@ public class PPU {
             if ((memory.read(0xFF44) == memory.read(0xFF45))) {
                 memory.forceWrite(0xFF41, (char)(memory.read(0xFF41) | 1 << 2)); // Set coincidence bit
                 if ((memory.read(0xFF41) & 1 << 6) == 1 << 6) {
-                    setInterrupt(1);
+                    memory.setInterrupt(1);
                 }
             } else {
                 memory.forceWrite(0xFF41, (char)(memory.read(0xFF41) & ~(1 << 2))); // Reset coincidence

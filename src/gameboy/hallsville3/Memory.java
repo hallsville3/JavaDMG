@@ -16,6 +16,10 @@ public class Memory {
         }
     }
 
+    public void setInterrupt(int i) {
+        write(0xFF0F, (char) (read(0xFF0F) | 1 << i));
+    }
+
     public void forceWrite(int address, char value) {
         forceWrite((char) address, value);
     }

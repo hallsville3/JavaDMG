@@ -6,6 +6,7 @@ public class GameBoy {
     Memory memory;
     CPU cpu;
     PPU ppu;
+    Timer timer;
     Controller controller;
     Window window;
     public GameBoy() {
@@ -17,6 +18,7 @@ public class GameBoy {
         memory.memory[0xFF00] = 0xF;
         cpu = new CPU(memory);
         ppu = new PPU(memory);
+        timer = new Timer(memory);
 
         window = new Window(ppu, scale);
         window.frame.addKeyListener(controller);
@@ -34,15 +36,17 @@ public class GameBoy {
         long time = System.currentTimeMillis();
         while (cpu.pc < 0xFFFF) {
             // Emulate one cycle
-            cpu.handleInterrupts();
             cpu.doCycle();
             count += cpu.cycles;
 
+            timer.update(cpu.cycles);
             ppu.doCycle(cpu.cycles);
+            cpu.handleInterrupts();
             if (count > 4194304 / 60) {
                 window.frame.repaint();
                 long newtime = System.currentTimeMillis();
                 if (17 - (newtime - time) > 0) {
+                    //noinspection BusyWait
                     Thread.sleep(17 - (newtime - time));
                 }
                 time = newtime;
