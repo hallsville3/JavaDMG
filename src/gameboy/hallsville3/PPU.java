@@ -1,6 +1,8 @@
 package gameboy.hallsville3;
 
 import java.awt.*;
+import java.util.ArrayList;
+import java.util.Comparator;
 
 class LCDControl {
     public char LCDDisplayEnable, WindowTileMapDisplaySelect, WindowDisplayEnable, BGWindowTileDataSelect;
@@ -93,6 +95,15 @@ public class PPU {
                         modeCount = 0;
                         memory.memory[0xFF44] = (char) (memory.read(0xFF44) + 1); // Increment LY
 
+                        if ((memory.read(0xFF44) == memory.read(0xFF45))) { // Check LY = LYC
+                            memory.forceWrite(0xFF41, (char)(memory.read(0xFF41) | 1 << 2)); // Set coincidence bit
+                            if ((memory.read(0xFF41) & 1 << 6) == 1 << 6) {
+                                memory.setInterrupt(1);
+                            }
+                        } else {
+                            memory.forceWrite(0xFF41, (char)(memory.read(0xFF41) & ~(1 << 2))); // Reset coincidence
+                        }
+
                         if (memory.read(0xFF44) == 144) {
                             // Vblank interrupt
                             memory.setInterrupt(0);
@@ -126,15 +137,6 @@ public class PPU {
                         }
                     }
                 }
-            }
-
-            if ((memory.read(0xFF44) == memory.read(0xFF45))) {
-                memory.forceWrite(0xFF41, (char)(memory.read(0xFF41) | 1 << 2)); // Set coincidence bit
-                if ((memory.read(0xFF41) & 1 << 6) == 1 << 6) {
-                    memory.setInterrupt(1);
-                }
-            } else {
-                memory.forceWrite(0xFF41, (char)(memory.read(0xFF41) & ~(1 << 2))); // Reset coincidence
             }
 
             memory.forceWrite(0xFF41, (char)((memory.read(0xFF41) & ~0b11) | mode));
@@ -180,25 +182,26 @@ public class PPU {
         int windowY = memory.read(0xFF4A);
         int windowX = memory.read(0xFF4B) - 7;
 
-        boolean drawingWindow = false;
-        if (control.WindowDisplayEnable == 1) {
-            if (windowY <= memory.read(0xFF44)) { // This is the window
-                drawingWindow = true;
-            }
-        }
-
         char tileAddress = (char)((control.BGWindowTileDataSelect == 1) ? 0x8000 : 0x8800);
         char bgAddress;
 
-        if (drawingWindow) {
-            bgAddress = (char) ((control.WindowTileMapDisplaySelect == 1) ? 0x9C00 : 0x9800);
-        } else {
-            bgAddress = (char) ((control.BGTileMapDisplaySelect == 1) ? 0x9C00 : 0x9800);
-        }
-
         for (int x = 0; x < 160; x++) {
+            boolean drawingWindow = false;
+            if (control.WindowDisplayEnable == 1) {
+                if (memory.read(0xFF44) >= windowY) { // This is the window
+                    if (x >= windowX) {
+                        drawingWindow = true;
+                    }
+                }
+            }
+            if (drawingWindow) {
+                bgAddress = (char) ((control.WindowTileMapDisplaySelect == 1) ? 0x9C00 : 0x9800);
+            } else {
+                bgAddress = (char) ((control.BGTileMapDisplaySelect == 1) ? 0x9C00 : 0x9800);
+            }
             char yPos = (char)(drawingWindow ? memory.read(0xFF44) - windowY: memory.read(0xFF44) + scrollY);
-            char xPos = (char)(drawingWindow && x >= windowX ? x - windowX : x + scrollX);
+            char xPos = (char)(drawingWindow ? x - windowX : x + scrollX);
+
             char tileRow = (char)(yPos / 8 * 32);
             char tileCol = (char)(xPos / 8);
             char tile = memory.read(bgAddress + (tileCol + tileRow) % (32 * 32));
@@ -218,8 +221,34 @@ public class PPU {
     }
 
     public void drawSprites() {
-        int spriteCount = 0; // Only 10 allowed per line
+        class SpriteComparator implements Comparator<Integer> {
+            public int compare(Integer a, Integer b) { // Sorts sprites by x coordinate
+                return memory.read(0xFE00 + 4 * a + 1) - memory.read(0xFE00 + 4 * b + 1);
+            }
+        }
+
+        ArrayList<Integer> sprites = new ArrayList<>(); // We will find the 10 leftmost visible sprites
         for (int sprite = 0; sprite < 40; sprite++) {
+            char yPos = (char)(memory.read(0xFE00 + 4 * sprite) - 16);
+
+            boolean use8x16 = control.OBJSpriteSize == 1;
+
+            if (yPos > memory.read(0xFF44) || memory.read(0xFF44) >= yPos + (use8x16 ? 16 : 8)) {
+                continue;
+            }
+
+            // This sprite could be visible if it is 1 of the leftmost 10
+            sprites.add(sprite);
+            if (sprites.size() == 10) {
+                break;
+            }
+        }
+
+        // Order the sprites by x coordinate
+        sprites.sort(new SpriteComparator());
+
+        ArrayList<Integer> drawnTo = new ArrayList<>(); // Only leftmost sprite gets to draw on a given square
+        for (int sprite: sprites) {
             char yPos = (char)(memory.read(0xFE00 + 4 * sprite) - 16);
             char xPos = (char)(memory.read(0xFE00 + 4 * sprite + 1) - 8);
             char tile = memory.read(0xFE00 + 4 * sprite + 2);
@@ -232,14 +261,18 @@ public class PPU {
 
             char paletteAddress = (char)(((atts & 0b10000) == 0b10000) ? 0xFF49 : 0xFF48);
 
-            if (yPos > memory.read(0xFF44) || memory.read(0xFF44) >= yPos + (use8x16 ? 16 : 8) || spriteCount == 10) {
+            int ySize = use8x16 ? 16 : 8;
+            if (yPos > memory.read(0xFF44) || memory.read(0xFF44) >= yPos + ySize) {
                 continue;
             }
-            spriteCount++;
+
+            if (use8x16) {
+                tile &= ~0b1; // Bit 0 should be ignored on 8x16 tiles
+            }
 
             char address = (char)(0x8000 + tile * 16);
 
-            char spriteLine = (char)(yFlip ? 7 - (memory.read(0xFF44) - yPos) : (memory.read(0xFF44) - yPos));
+            char spriteLine = (char)(yFlip ? ySize - 1 - (memory.read(0xFF44) - yPos) : (memory.read(0xFF44) - yPos));
             char byte1 = memory.read(address + spriteLine * 2);
             char byte2 = memory.read(address + spriteLine * 2 + 1);
             for (int j = 0; j < 8; j++) {
@@ -250,8 +283,12 @@ public class PPU {
                     continue;
                 }
                 Color color = getPaletteColor(value, paletteAddress);
-                if ((xPos + j) + memory.read(0xFF44) * 160 < 144 * 160) {
+                if ((xPos + j) + memory.read(0xFF44) * 160 < 144 * 160 && !drawnTo.contains((xPos + j) + memory.read(0xFF44) * 160)) {
+                    if (spritePriority && screenBuffer[(xPos + j) + memory.read(0xFF44) * 160] != Color.WHITE) {
+                        continue;
+                    }
                     screenBuffer[(xPos + j) + memory.read(0xFF44) * 160] = color;
+                    drawnTo.add((xPos + j) + memory.read(0xFF44) * 160);
                 }
             }
         }

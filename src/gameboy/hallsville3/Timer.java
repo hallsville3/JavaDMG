@@ -2,10 +2,11 @@ package gameboy.hallsville3;
 
 public class Timer {
     public Memory memory;
-    public int cycles;
+    public int cycles, dividerCycles;
     public Timer(Memory memory) {
         this.memory = memory;
         cycles = 0;
+        dividerCycles = 0;
     }
 
     public boolean isEnabled() {
@@ -22,12 +23,21 @@ public class Timer {
         return 4096;
     }
 
+    public void updateDivider(int cpuCycles) {
+        dividerCycles += cpuCycles;
+        if (dividerCycles > 255) {
+            dividerCycles -= 256;
+            memory.memory[0xFF04] = (char)((memory.memory[0xFF04] + 1) & 0xFF);
+        }
+    }
+
     public void update(int cpuCycles) {
+        updateDivider(cpuCycles);
         if (isEnabled()) {
             cycles += cpuCycles;
-            if (cycles >= 4194304 / getFrequency()) {
-                cycles = 0;
-                memory.write(0xFF05, (char) ((memory.read(0xFF05) + 1) % 256));
+            while (cycles >= 4194304 / getFrequency()) {
+                cycles -= 4194304 / getFrequency();
+                memory.write(0xFF05, (char) ((memory.read(0xFF05) + 1) & 0xFF));
                 if (memory.read(0xFF05) == 0) {
                     // Request an interrupt and reset to value in 0xFF06
                     memory.write(0xFF05, memory.read(0xFF06));

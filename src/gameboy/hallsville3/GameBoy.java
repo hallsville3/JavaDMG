@@ -29,8 +29,6 @@ public class GameBoy {
         cpu.loadGame(game);
     }
 
-    //TODO Implement Timer
-
     public void run() throws InterruptedException {
         int count = 0;
         long time = System.currentTimeMillis();
@@ -44,12 +42,12 @@ public class GameBoy {
             cpu.handleInterrupts();
             if (count > 4194304 / 60) {
                 window.frame.repaint();
-                long newtime = System.currentTimeMillis();
-                if (17 - (newtime - time) > 0) {
+                long newTime = System.currentTimeMillis();
+                if (17 - (newTime - time) > 0) {
                     //noinspection BusyWait
-                    Thread.sleep(17 - (newtime - time));
+                    Thread.sleep(17 - (newTime - time));
                 }
-                time = newtime;
+                time = newTime;
                 count = 0;
             }
         }

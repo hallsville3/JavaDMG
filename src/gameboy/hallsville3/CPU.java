@@ -36,7 +36,7 @@ public class CPU {
     public final int Hf = 2;
     public final int Cf = 3;
 
-    public boolean ime = false; // Interrupt Master Enable
+    public boolean ime = true; // Interrupt Master Enable
     public boolean ime_scheduled = false; // IME will be re-enabled NEXT cycle
 
     public int breakpoint = 0;//0xc694;
@@ -51,6 +51,8 @@ public class CPU {
     public long oldTime;
 
     public int cycles;
+
+    public boolean halted = false; // Gets set to true when HALT is executed
 
     //public Beeper b;
 
@@ -1694,6 +1696,7 @@ public class CPU {
                 memory.write(sp - 2, (char) ((pc + 3) & 0xFF));
                 sp -= 2;
                 pc = get16BitMemory(pc + 1, pc + 2);
+                cycles = 20;
 
                 break;
             }
@@ -1719,7 +1722,7 @@ public class CPU {
                     sp -= 2;
 
                     pc = get16BitMemory(pc + 1, pc + 2);
-                    cycles = 16;
+                    cycles = 24;
                 } else {
                     pc += 3;
                     cycles = 12;
@@ -1754,7 +1757,7 @@ public class CPU {
                 if (cc) {
                     pc = get16BitMemory(sp, sp + 1);
                     sp += 2;
-                    cycles = 12;
+                    cycles = 20;
                 } else {
                     pc++;
                     cycles = 8;
@@ -1776,7 +1779,7 @@ public class CPU {
                 sp -= 2;
                 pc = (char) (opcode - 0xC7);
 
-                cycles = 32;
+                cycles = 16;
                 break;
             }
 
@@ -1883,8 +1886,8 @@ public class CPU {
             {
                 // Disable Interrupts
                 ime = false;
-                cycles = 4;
                 pc++;
+                cycles = 4;
                 break;
             }
 
@@ -1892,8 +1895,8 @@ public class CPU {
             {
                 // Enable Interrupts after next instruction
                 ime_scheduled = true;
-                cycles = 4;
                 pc++;
+                cycles = 4;
                 break;
             }
 
@@ -1964,9 +1967,9 @@ public class CPU {
             // TODO Finish Halt
             case 0x76: // HALT
             {
-                System.out.println("UNFINISHED HALT");
                 cycles = 4;
                 pc++;
+                halted = true;
                 break;
             }
 
@@ -1982,6 +1985,7 @@ public class CPU {
             case 0xF4: case 0xFC: case 0xFD: // Unassigned opcodes
             {
                 pc++;
+                cycles = 4;
                 break;
             }
 
@@ -2006,11 +2010,10 @@ public class CPU {
         // Jump to the interrupt handler
         switch (interrupt)
         {
-            case 0: pc = 0x40 ; break ;
-            case 1: pc = 0x48 ; break ;
-            case 2: pc = 0x50 ; break ;
-            case 4: pc = 0x60 ; break ;
-            default: break;
+            case 0 -> pc = 0x40;
+            case 1 -> pc = 0x48;
+            case 2 -> pc = 0x50;
+            case 4 -> pc = 0x60;
         }
     }
 
@@ -2025,6 +2028,8 @@ public class CPU {
                         if (((IE & (1 << i)) >> i) == 1) {
                             // The interrupt is enabled
                             serviceInterrupt(i);
+                            // We also need to let the cpu continue if it is halted
+                            halted = false;
                         }
                     }
                 }
@@ -2034,6 +2039,15 @@ public class CPU {
     }
 
     public void doCycle() {
+        if (halted) {
+            char IF = memory.read(0xFF0F); // Interrupts requested
+            char IE = memory.read(0xFFFF); // Interrupts enabled
+            if (IF > 0 && IE > 0) {
+                halted = false;
+            } else {
+                return;
+            }
+        }
         boolean enable_ime = ime_scheduled; // Save the value for after the next opcode
         ime_scheduled = false;
         char opcode = memory.read(pc);

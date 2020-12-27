@@ -53,6 +53,8 @@ public class Memory {
 
         if (address == 0xFF44) {
             memory[address] = 0;
+        } else if (address == 0xFF04) { // Divider Register
+            memory[0xFF04] = 0;
         } else if (address == 0xFF46) {
             doDMATransfer(value);
         } else {
