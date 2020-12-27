@@ -28,6 +28,7 @@ public class PPU {
     Color[] screenBuffer; // Where the pixel data is stored
     LCDControl control;
     int mode, modeCount; // Mode and cycles elapsed in that mode
+    int internalWindowCounter;
     int scanlineCounter;
 
     public PPU (Memory memory) {
@@ -40,6 +41,7 @@ public class PPU {
         mode = 2;
         modeCount = 0;
         scanlineCounter = 456; // CPU cycles per scanline
+        internalWindowCounter = 0;
     }
 
     public Color getPaletteColor(char colorID, char address) {
@@ -63,6 +65,17 @@ public class PPU {
         }
 
         return result;
+    }
+
+    public void coincidenceCheck() {
+        if ((memory.read(0xFF44) == memory.read(0xFF45))) { // Check LY = LYC
+            memory.forceWrite(0xFF41, (char)(memory.read(0xFF41) | 1 << 2)); // Set coincidence bit
+            if ((memory.read(0xFF41) & 1 << 6) == 1 << 6) {
+                memory.setInterrupt(1);
+            }
+        } else {
+            memory.forceWrite(0xFF41, (char)(memory.read(0xFF41) & ~(1 << 2))); // Reset coincidence
+        }
     }
 
     public void doCycle(int cpuCycles) {
@@ -94,15 +107,7 @@ public class PPU {
                     if (modeCount >= 204) {
                         modeCount = 0;
                         memory.memory[0xFF44] = (char) (memory.read(0xFF44) + 1); // Increment LY
-
-                        if ((memory.read(0xFF44) == memory.read(0xFF45))) { // Check LY = LYC
-                            memory.forceWrite(0xFF41, (char)(memory.read(0xFF41) | 1 << 2)); // Set coincidence bit
-                            if ((memory.read(0xFF41) & 1 << 6) == 1 << 6) {
-                                memory.setInterrupt(1);
-                            }
-                        } else {
-                            memory.forceWrite(0xFF41, (char)(memory.read(0xFF41) & ~(1 << 2))); // Reset coincidence
-                        }
+                        coincidenceCheck();
 
                         if (memory.read(0xFF44) == 144) {
                             // Vblank interrupt
@@ -124,12 +129,15 @@ public class PPU {
                 }
                 case 1 -> // VBLANK (456 * 10 Cycles)
                 {
+                    internalWindowCounter = 0; // If we enter VBLANK the counter should be reset
                     if (modeCount >= 456) {
                         modeCount = 0;
                         memory.memory[0xFF44] = (char) (memory.read(0xFF44) + 1); // Increment LY
+                        coincidenceCheck();
 
-                        if (memory.read(0xFF44) > 153) { // Switch to OAM Read mode of line 0
+                        if (memory.read(0xFF44) == 154) { // Switch to OAM Read mode of line 0
                             memory.write(0xFF44, (char) 0);
+                            coincidenceCheck();
                             mode = 2;
                             if ((memory.read(0xFF41) & (1 << 5)) == 1 << 5) { // Do LCDC interrupt
                                 memory.setInterrupt(1);
@@ -146,7 +154,7 @@ public class PPU {
             if ((memory.read(0xFF41) & (1 << 4)) == 1 << 4) { // Do LCDC interrupt
                 memory.setInterrupt(1);
             }
-            memory.forceWrite(0xFF41, (char)((memory.read(0xFF41) & ~0b11) | mode));
+            memory.forceWrite(0xFF41, (char)((memory.read(0xFF41) & ~0b111)));
             memory.write(0xFF44, (char)0);
         }
     }
@@ -188,38 +196,45 @@ public class PPU {
         char tileAddress = (char)((control.BGWindowTileDataSelect == 1) ? 0x8000 : 0x8800);
         char bgAddress;
 
+        boolean windowWasDrawn = false;
         for (int x = 0; x < 160; x++) {
             boolean drawingWindow = false;
             if (control.WindowDisplayEnable == 1) {
                 if (memory.read(0xFF44) >= windowY) { // This is the window
                     if (x >= windowX) {
                         drawingWindow = true;
+                        windowWasDrawn = true; // The window is visible on this scanline
                     }
                 }
             }
+
             if (drawingWindow) {
                 bgAddress = (char) ((control.WindowTileMapDisplaySelect == 1) ? 0x9C00 : 0x9800);
             } else {
                 bgAddress = (char) ((control.BGTileMapDisplaySelect == 1) ? 0x9C00 : 0x9800);
             }
-            char yPos = (char)(drawingWindow ? memory.read(0xFF44) - windowY: memory.read(0xFF44) + scrollY);
+
+            char yPos = (char)(drawingWindow ? internalWindowCounter: memory.read(0xFF44) + scrollY);
             char xPos = (char)(drawingWindow ? x - windowX : x + scrollX);
 
-            char tileRow = (char)(yPos / 8 * 32);
-            char tileCol = (char)(xPos / 8);
-            char tile = memory.read(bgAddress + (tileCol + tileRow) % (32 * 32));
-            if (control.BGWindowTileDataSelect == 0) {
+            char tileRow = (char)(yPos / 8);
+            char tileCol = (char)(xPos / 8 % 32);
+            char tile = memory.read(bgAddress + (tileCol + tileRow * 32) % 0x400);
+            if (control.BGWindowTileDataSelect == 0) { // Signed addressing
                 tile = (char)((tile + 128) & 0xFF);
             }
             char address = (char)(tileAddress + tile * 16);
-            char byte1 = memory.read(address + (memory.read(0xFF44) % 8) * 2);
-            char byte2 = memory.read(address + (memory.read(0xFF44) % 8) * 2 + 1);
-            int j = x % 8;
+            char byte1 = memory.read(address + (yPos % 8) * 2);
+            char byte2 = memory.read(address + (yPos % 8) * 2 + 1);
+            int j = (xPos % 8);
             char value = (char)((byte1 & (0b10000000 >> j)) >> (7-j));
             value |= (((byte2 & (0b10000000 >> j)) >> (7-j)) << 1);
 
             Color color = getPaletteColor(value, (char)0xFF47);
             screenBuffer[x + memory.read(0xFF44) * 160] = color;
+        }
+        if (windowWasDrawn) {
+            internalWindowCounter++;
         }
     }
 

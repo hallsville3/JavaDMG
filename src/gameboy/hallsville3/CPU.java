@@ -39,7 +39,7 @@ public class CPU {
     public boolean ime = true; // Interrupt Master Enable
     public boolean ime_scheduled = false; // IME will be re-enabled NEXT cycle
 
-    public int breakpoint = 0;//0xc694;
+    public int breakpoint = 0x0;//0xc694;
 
     public ArrayList<Character> executed = new ArrayList<>();
 
@@ -138,7 +138,7 @@ public class CPU {
         byte[] gameData = Files.readAllBytes(p);
 
         for (int i = 0; i < gameData.length; i++) {
-            memory.write(i, (char) (gameData[i] & 0xFF)); //128 to fix stupid Java signed byte-age
+            memory.forceWrite(i, (char) (gameData[i] & 0xFF)); //128 to fix stupid Java signed byte-age
         }
 
         System.out.println("Successfully Loaded " + game + ".");
@@ -2043,7 +2043,7 @@ public class CPU {
         if (halted) {
             char IF = memory.read(0xFF0F); // Interrupts requested
             char IE = memory.read(0xFFFF); // Interrupts enabled
-            if (IF > 0 && IE > 0) {
+            if ((IF & IE) > 0) {
                 halted = false;
             } else {
                 return;
