@@ -143,6 +143,9 @@ public class PPU {
 
         } else { // If LCD is disabled, mode must be set to 1
             mode = 1;
+            if ((memory.read(0xFF41) & (1 << 4)) == 1 << 4) { // Do LCDC interrupt
+                memory.setInterrupt(1);
+            }
             memory.forceWrite(0xFF41, (char)((memory.read(0xFF41) & ~0b11) | mode));
             memory.write(0xFF44, (char)0);
         }

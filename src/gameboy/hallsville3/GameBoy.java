@@ -34,12 +34,15 @@ public class GameBoy {
         long time = System.currentTimeMillis();
         while (cpu.pc < 0xFFFF) {
             // Emulate one cycle
+            int cycles = 0;
+            cycles += cpu.handleInterrupts();
             cpu.doCycle();
-            count += cpu.cycles;
+            cycles += cpu.cycles;
 
-            timer.update(cpu.cycles);
-            ppu.doCycle(cpu.cycles);
-            cpu.handleInterrupts();
+            count += cycles;
+
+            timer.update(cycles);
+            ppu.doCycle(cycles);
             if (count > 4194304 / 60) {
                 window.frame.repaint();
                 long newTime = System.currentTimeMillis();

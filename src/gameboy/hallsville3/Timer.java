@@ -13,14 +13,14 @@ public class Timer {
         return (memory.read(0xFF07) & 0b100) == 0b100;
     }
 
-    public int getFrequency() {
+    public int getCycles() {
         switch (memory.read(0xFF07) & 0b11) {
-            case 0 -> {return 4096;}
-            case 1 -> {return 262144;}
-            case 2 -> {return 65536;}
-            case 3 -> {return 16382;}
+            case 0 -> {return 1024;}
+            case 1 -> {return 16;}
+            case 2 -> {return 64;}
+            case 3 -> {return 256;}
         }
-        return 4096;
+        return 1024;
     }
 
     public void updateDivider(int cpuCycles) {
@@ -35,8 +35,8 @@ public class Timer {
         updateDivider(cpuCycles);
         if (isEnabled()) {
             cycles += cpuCycles;
-            while (cycles >= 4194304 / getFrequency()) {
-                cycles -= 4194304 / getFrequency();
+            while (cycles >= getCycles()) {
+                cycles -= getCycles();
                 memory.write(0xFF05, (char) ((memory.read(0xFF05) + 1) & 0xFF));
                 if (memory.read(0xFF05) == 0) {
                     // Request an interrupt and reset to value in 0xFF06

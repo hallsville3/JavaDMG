@@ -55,6 +55,7 @@ public class Memory {
             memory[address] = 0;
         } else if (address == 0xFF04) { // Divider Register
             memory[0xFF04] = 0;
+            memory[0xFF05] = 0; // Also reset the regular timer
         } else if (address == 0xFF46) {
             doDMATransfer(value);
         } else {
@@ -69,6 +70,8 @@ public class Memory {
     public char read(char address) {
         if (address == 0xFF00) {
             return controller.get(memory[0xFF00]);
+        } else if (address == 0xFF0F) {
+            return (char)(0xF0 | memory[0xFF0F]);
         }
         return memory[address];
     }

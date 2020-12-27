@@ -447,7 +447,7 @@ public class CPU {
                 boolean cp = (memory.read(get16BitRegister(H, L)) & bit) == 0; // Is bit b 0?
                 setFlag(Zf, cp ? 1: 0);
                 pc++;
-                cycles = 16;
+                cycles = 12;
                 break;
             }
 
@@ -1630,7 +1630,7 @@ public class CPU {
                     pc += val;
                 }
                 pc += 2;
-                cycles = 8;
+                cycles = 12;
                 break;
             }
 
@@ -1696,7 +1696,7 @@ public class CPU {
                 memory.write(sp - 2, (char) ((pc + 3) & 0xFF));
                 sp -= 2;
                 pc = get16BitMemory(pc + 1, pc + 2);
-                cycles = 20;
+                cycles = 24;
 
                 break;
             }
@@ -1787,7 +1787,7 @@ public class CPU {
             case 0xD9: {
                 pc = get16BitMemory(sp, sp + 1);
                 sp += 2;
-                cycles = 8;
+                cycles = 16;
                 ime = true;
                 break;
             }
@@ -2017,7 +2017,7 @@ public class CPU {
         }
     }
 
-    public void handleInterrupts() {
+    public int handleInterrupts() {
         if (ime) { // Interrupts are enabled
             char IF = memory.read(0xFF0F); // Interrupts requested
             char IE = memory.read(0xFFFF); // Interrupts enabled
@@ -2030,12 +2030,13 @@ public class CPU {
                             serviceInterrupt(i);
                             // We also need to let the cpu continue if it is halted
                             halted = false;
+                            return 20;
                         }
                     }
                 }
             }
-
         }
+        return 0;
     }
 
     public void doCycle() {
