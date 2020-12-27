@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/Gameboy.iml" filepath="$PROJECT_DIR$/Gameboy.iml" />
+      <module fileurl="file://$PROJECT_DIR$/JavaDMG/JavaDMG.iml" filepath="$PROJECT_DIR$/JavaDMG/JavaDMG.iml" />
     </modules>
   </component>
 </project>
