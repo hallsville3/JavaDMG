@@ -28,6 +28,9 @@ public class Memory {
     }
 
     public void write(char address, char value) {
+        if (address >= 0x150 && address <= 0x3FFF) { // No writes to the rom allowed
+            return;
+        }
         if (address >= 0x8000 && address <= 0x9FFF) { // VRAM
             if ((memory[0xFF41] & 0b11) == 3) {
                 return;
