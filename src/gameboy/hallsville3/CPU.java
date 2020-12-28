@@ -137,9 +137,7 @@ public class CPU {
         Path p = FileSystems.getDefault().getPath(game);
         byte[] gameData = Files.readAllBytes(p);
 
-        for (int i = 0; i < gameData.length; i++) {
-            memory.forceWrite(i, (char) (gameData[i] & 0xFF)); //128 to fix stupid Java signed byte-age
-        }
+        memory.loadCartridge(gameData);
 
         System.out.println("Successfully Loaded " + game + ".");
     }

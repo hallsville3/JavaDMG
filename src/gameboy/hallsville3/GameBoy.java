@@ -11,7 +11,7 @@ public class GameBoy {
     Window window;
     public GameBoy() {
         int memSize = 0xFFFF+1;
-        int scale = 4;
+        int scale = 7;
         controller = new Controller();
         memory = new Memory(memSize, controller);
         controller.setMemory(memory);
