@@ -31,6 +31,7 @@ public class GameBoy {
 
     public void run() throws InterruptedException {
         int count = 0;
+        int fps = 60;
         long time = System.currentTimeMillis();
         while (cpu.pc < 0xFFFF) {
             // Emulate one cycle
@@ -43,15 +44,16 @@ public class GameBoy {
 
             timer.update(cycles);
             ppu.doCycle(cycles);
-            if (count > 4194304 / 60) {
+            if (count > 4194304 / fps) {
                 window.frame.repaint();
                 long newTime = System.currentTimeMillis();
-                if (17 - (newTime - time) > 0) {
+                if (1000 / fps - (newTime - time) > 0) {
                     //noinspection BusyWait
-                    Thread.sleep(17 - (newTime - time));
+                    Thread.sleep(1000 / fps - (newTime - time));
                 }
+                newTime = System.currentTimeMillis();
                 time = newTime;
-                count = 0;
+                count -= 4194304 / fps;
             }
         }
     }
