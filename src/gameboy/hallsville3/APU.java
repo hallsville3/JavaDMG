@@ -47,8 +47,8 @@ public class APU {
         }
 
         sampleFreq += cpuCycles;
-        if (sampleFreq >= 87) {
-            sampleFreq -= 87;
+        if (sampleFreq >= 4194304 / sampleRate) {
+            sampleFreq -= 4194304 / sampleRate;
             addSample((byte) ((duty2 < 4 ? 30 : -30) + (duty < 4 ? 30 : -30)));
         }
     }
@@ -58,7 +58,7 @@ public class APU {
         info = new DataLine.Info(SourceDataLine.class, af);
         try {
             line = (SourceDataLine) AudioSystem.getLine(info);
-            line.open(af, 48000 * 4);
+            line.open(af, 2048);
         } catch (LineUnavailableException e) {
             System.out.println("Could not acquire sound device.");
             System.exit(1);
@@ -70,15 +70,15 @@ public class APU {
     public void addSample(byte f){
         buffer[loc] = f;
         loc++;
-        if (loc == bufSize) {
+        if (loc == bufSize / 2) {
             // Buffer is full
-            play(loc);
-            loc = 0;
+            play();
         }
     }
 
-    public void play(int loc) {
+    public void play() {
         line.write(buffer, 0, loc);
+        loc = 0;
     }
 
     public void stop() {
