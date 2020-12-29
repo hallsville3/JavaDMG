@@ -1962,7 +1962,7 @@ public class CPU {
                 break;
             }
 
-            // TODO Finish Halt
+            // TODO Add Halt Bug
             case 0x76: // HALT
             {
                 cycles = 4;

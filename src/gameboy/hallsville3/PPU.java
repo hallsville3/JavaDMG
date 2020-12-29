@@ -56,13 +56,15 @@ public class PPU {
         char color = (char)((palette >> colorBitShift) & 0b11);
         // Now color contains the actual color from the palette
 
-        Color result = Color.WHITE;
+        Color[] greenPalette = {new Color(155, 188, 15), new Color(139, 172, 15),
+                                new Color(48, 98, 48), new Color(15, 56, 15)};
 
-        switch (color) { // Case 0 gives White
-            case 1 -> result = new Color(161, 161, 161);
-            case 2 -> result = Color.DARK_GRAY;
-            case 3 -> result = Color.BLACK;
-        }
+        Color[] whitePalette = {Color.WHITE, Color.LIGHT_GRAY,
+                                Color.DARK_GRAY, Color.BLACK};
+
+        Color[] screenPalette = whitePalette;
+
+        Color result = screenPalette[color];
 
         return result;
     }
@@ -239,6 +241,7 @@ public class PPU {
     }
 
     public void drawSprites() {
+        // TODO Fix sprites on left side of screen invisible
         class SpriteComparator implements Comparator<Integer> {
             public int compare(Integer a, Integer b) { // Sorts sprites by x coordinate
                 return memory.read(0xFE00 + 4 * a + 1) - memory.read(0xFE00 + 4 * b + 1);
