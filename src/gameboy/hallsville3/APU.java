@@ -17,7 +17,8 @@ public class APU {
     Memory memory;
 
     int duty = 0;
-    int timer;
+    int duty2 = 0;
+    int timer, timer2;
     int sampleFreq;
 
     public APU(Memory mem) {
@@ -26,6 +27,7 @@ public class APU {
         buffer = new byte[bufSize];
         memory = mem;
         timer = 0;
+        timer2 = 0;
         initialize();
     }
 
@@ -36,21 +38,18 @@ public class APU {
             int x = memory.read(0xFF18) | ((memory.read(0xFF19) & 0b111) << 8);
             timer = 4 * (2048 - x);
         }
+
+        timer2 -= cpuCycles;
+        if (timer2 <= 0) {
+            duty2 = (duty2 + 1) % 8;
+            int x2 = memory.read(0xFF13) | ((memory.read(0xFF14) & 0b111) << 8);
+            timer2 = 4 * (2048 - x2);
+        }
+
         sampleFreq += cpuCycles;
         if (sampleFreq >= 87) {
             sampleFreq -= 87;
-            addSample((byte) (duty < 4 ? 30 : -30));
-        }
-    }
-
-    public void test() {
-        for (int i = 0; i < 4; i++) {
-            for (int f = 55; f < 1760; f *= 2) {
-                addFrequency(f, 4800);
-            }
-            for (int f = 1760; f > 55; f /= 2) {
-                addFrequency(f, 4800);
-            }
+            addSample((byte) ((duty2 < 4 ? 30 : -30) + (duty < 4 ? 30 : -30)));
         }
     }
 
@@ -68,28 +67,18 @@ public class APU {
         line.start();
     }
 
-    public void addFrequency(int f, int duration) {
-        for (int i = 0; i < duration; i++) {
-            if ((i % (48000 / f)) < 48000 / f / 2) {
-                addSample((byte)30);
-            } else {
-                addSample((byte)-30);
-            }
-        }
-    }
-
     public void addSample(byte f){
         buffer[loc] = f;
         loc++;
         if (loc == bufSize) {
             // Buffer is full
+            play(loc);
             loc = 0;
-            play();
         }
     }
 
-    public void play() {
-        line.write(buffer, 0, buffer.length);
+    public void play(int loc) {
+        line.write(buffer, 0, loc);
     }
 
     public void stop() {
