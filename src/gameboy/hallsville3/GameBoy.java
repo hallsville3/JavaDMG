@@ -1,5 +1,7 @@
 package gameboy.hallsville3;
 
+import gameboy.hallsville3.Sound.APU;
+
 import java.io.IOException;
 
 public class GameBoy {

@@ -1,5 +1,6 @@
-package gameboy.hallsville3;
+package gameboy.hallsville3.Sound;
 
+import gameboy.hallsville3.Memory;
 
 import javax.sound.sampled.*;
 
@@ -16,9 +17,8 @@ public class APU {
 
     Memory memory;
 
-    int duty = 0;
-    int duty2 = 0;
-    int timer, timer2;
+    SoundChannel[] soundChannels;
+    Channel2 ch2;
     int sampleFreq;
 
     public APU(Memory mem) {
@@ -26,30 +26,22 @@ public class APU {
         bufSize = 2048;
         buffer = new byte[bufSize];
         memory = mem;
-        timer = 0;
-        timer2 = 0;
         initialize();
+
+        soundChannels = new SoundChannel[] {new Channel1(memory), new Channel2(memory)};
     }
 
     public void doCycle(int cpuCycles) {
-        timer -= cpuCycles;
-        if (timer <= 0) {
-            duty = (duty + 1) % 8;
-            int x = memory.read(0xFF18) | ((memory.read(0xFF19) & 0b111) << 8);
-            timer = 4 * (2048 - x);
-        }
-
-        timer2 -= cpuCycles;
-        if (timer2 <= 0) {
-            duty2 = (duty2 + 1) % 8;
-            int x2 = memory.read(0xFF13) | ((memory.read(0xFF14) & 0b111) << 8);
-            timer2 = 4 * (2048 - x2);
-        }
-
         sampleFreq += cpuCycles;
+
+        byte output = 0;
+        for (SoundChannel channel: soundChannels) {
+            output += channel.doCycle(cpuCycles) / 4;
+        }
+
         if (sampleFreq >= 4194304 / sampleRate) {
             sampleFreq -= 4194304 / sampleRate;
-            addSample((byte) ((duty2 < 4 ? 30 : -30) + (duty < 4 ? 30 : -30)));
+            addSample(output);
         }
     }
 
@@ -67,8 +59,8 @@ public class APU {
         line.start();
     }
 
-    public void addSample(byte f){
-        buffer[loc] = f;
+    public void addSample(byte s){
+        buffer[loc] = s;
         loc++;
         if (loc == bufSize / 2) {
             // Buffer is full
