@@ -17,7 +17,7 @@ public class GameBoy {
 
     public GameBoy() {
         int memSize = 0xFFFF + 1;
-        int scale = 7;
+        int scale = 4;
         controller = new Controller();
         apu = new APU();
         memory = new Memory(memSize, controller, apu);

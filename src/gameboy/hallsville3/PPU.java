@@ -252,7 +252,7 @@ public class PPU {
             boolean use8x16 = control.OBJSpriteSize == 1;
 
             int ySize = (use8x16 ? 16 : 8);
-            if (yPos > memory.read(0xFF44)  || memory.read(0xFF44) >= yPos + ySize) {
+            if (yPos > memory.read(0xFF44) || memory.read(0xFF44) >= yPos + ySize) {
                 // Check edge case where it is above the screen
                 if (yPos < 65000) { // If the sprite is below 65000 we are confident is has not wrapped around
                     continue;

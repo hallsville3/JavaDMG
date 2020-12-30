@@ -1,12 +1,13 @@
 package gameboy.hallsville3;
 
 import javax.swing.*;
+import java.awt.*;
 
 public class Window {
     JFrame frame;
     public Window(PPU ppu, int scale) {
         frame = new JFrame("GameBoy");
-        frame.setSize(160 * scale, 144 * scale + 21);
+        frame.setSize(160 * scale, 144 * scale + 28);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setResizable(false);
 
