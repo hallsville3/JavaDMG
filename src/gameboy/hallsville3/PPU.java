@@ -62,11 +62,9 @@ public class PPU {
         Color[] whitePalette = {Color.WHITE, Color.LIGHT_GRAY,
                                 Color.DARK_GRAY, Color.BLACK};
 
-        Color[] screenPalette = whitePalette;
+        Color[][] palettes = {greenPalette, whitePalette};
 
-        Color result = screenPalette[color];
-
-        return result;
+        return palettes[1][color];
     }
 
     public void coincidenceCheck() {
@@ -253,8 +251,15 @@ public class PPU {
 
             boolean use8x16 = control.OBJSpriteSize == 1;
 
-            if (yPos > memory.read(0xFF44) || memory.read(0xFF44) >= yPos + (use8x16 ? 16 : 8)) {
-                continue;
+            int ySize = (use8x16 ? 16 : 8);
+            if (yPos > memory.read(0xFF44)  || memory.read(0xFF44) >= yPos + ySize) {
+                // Check edge case where it is above the screen
+                if (yPos < 65000) { // If the sprite is below 65000 we are confident is has not wrapped around
+                    continue;
+                }
+                if ((char) (yPos + ySize) <= memory.read(0xFF44)) { // If the bottom of the sprite is above the scanline, continue
+                    continue;
+                }
             }
 
             // This sprite could be visible if it is 1 of the leftmost 10
@@ -284,9 +289,6 @@ public class PPU {
             char paletteAddress = (char)(((atts & 0b10000) == 0b10000) ? 0xFF49 : 0xFF48);
 
             int ySize = use8x16 ? 16 : 8;
-            if (yPos > memory.read(0xFF44) || memory.read(0xFF44) >= yPos + ySize) {
-                continue;
-            }
 
             if (use8x16) {
                 tile &= ~0b1; // Bit 0 should be ignored on 8x16 tiles
