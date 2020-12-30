@@ -1,5 +1,6 @@
 package gameboy.hallsville3.Sound;
 
+import gameboy.hallsville3.GameBoy;
 import gameboy.hallsville3.Memory;
 
 import javax.sound.sampled.*;
@@ -18,16 +19,17 @@ public class APU {
     Memory memory;
 
     SoundChannel[] soundChannels;
-    Channel2 ch2;
     int sampleFreq;
 
-    public APU(Memory mem) {
+    public APU() {
         loc = 0;
         bufSize = 2048;
         buffer = new byte[bufSize];
-        memory = mem;
         initialize();
+    }
 
+    public void setMemory(Memory mem) {
+        memory = mem;
         soundChannels = new SoundChannel[] {new Channel1(memory), new Channel2(memory)};
     }
 
@@ -35,18 +37,19 @@ public class APU {
         sampleFreq += cpuCycles;
 
         byte output = 0;
+        byte volume = 1;
         for (SoundChannel channel: soundChannels) {
-            output += channel.doCycle(cpuCycles) / 4;
+            output += channel.doCycle(cpuCycles) * volume / 4;
         }
 
-        if (sampleFreq >= 4194304 / sampleRate) {
-            sampleFreq -= 4194304 / sampleRate;
+        if (sampleFreq >= GameBoy.CLOCK_SPEED / sampleRate) {
+            sampleFreq -= GameBoy.CLOCK_SPEED / sampleRate;
             addSample(output);
         }
     }
 
     public void initialize() {
-        af = new AudioFormat(sampleRate, bitDepth, 1, true, false);
+        af = new AudioFormat(sampleRate, bitDepth, 1, false, false);
         info = new DataLine.Info(SourceDataLine.class, af);
         try {
             line = (SourceDataLine) AudioSystem.getLine(info);
@@ -77,5 +80,15 @@ public class APU {
         line.drain();
         line.stop();
         line.close();
+    }
+
+    public void handleNR4(char address, char value) {
+        // Checks if any channels need to be triggered
+        if (address == 0xFF19) {
+            if ((value & 0b10000000) == 0b10000000) {
+                // This is a trigger
+                soundChannels[1].trigger();
+            }
+        }
     }
 }

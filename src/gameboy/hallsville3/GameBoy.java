@@ -12,21 +12,25 @@ public class GameBoy {
     Timer timer;
     Controller controller;
     Window window;
+
+    public static int CLOCK_SPEED = 4194304;
+
     public GameBoy() {
-        int memSize = 0xFFFF+1;
+        int memSize = 0xFFFF + 1;
         int scale = 7;
         controller = new Controller();
-        memory = new Memory(memSize, controller);
+        apu = new APU();
+        memory = new Memory(memSize, controller, apu);
         controller.setMemory(memory);
+        apu.setMemory(memory);
         memory.memory[0xFF00] = 0xF;
+
         cpu = new CPU(memory);
         ppu = new PPU(memory);
         timer = new Timer(memory);
-        apu = new APU(memory);
-
         window = new Window(ppu, scale);
+
         window.frame.addKeyListener(controller);
-        window.frame.repaint();
     }
 
     public void loadGame(String game) throws IOException {
@@ -36,7 +40,6 @@ public class GameBoy {
     public void run() {
         int count = 0;
         double fps = 60;
-        long time = System.currentTimeMillis();
         while (cpu.pc < 0xFFFF) {
             // Emulate one cycle
             int cycles = 0;
@@ -49,9 +52,9 @@ public class GameBoy {
             timer.update(cycles);
             ppu.doCycle(cycles);
             apu.doCycle(cycles);
-            if (count > 4194304 / fps) {
+            if (count > CLOCK_SPEED / fps) {
                 window.frame.repaint();
-                count -= 4194304 / fps;
+                count -= CLOCK_SPEED / fps;
             }
         }
     }

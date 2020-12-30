@@ -1,5 +1,7 @@
 package gameboy.hallsville3;
 
+import gameboy.hallsville3.Sound.APU;
+
 public class Memory {
     public char[] memory;
     public char[] cartridgeROM;
@@ -8,11 +10,13 @@ public class Memory {
     public boolean RAMEnabled;
     public int currentROMBank, currentRAMBank;
     Controller controller;
+    APU apu;
     public boolean romBankingEnabled;
 
-    public Memory(int memSize, Controller con) {
+    public Memory(int memSize, Controller con, APU a) {
         memory = new char[memSize];
         controller = con;
+        apu = a;
     }
 
     public void doDMATransfer(char value) {
@@ -162,6 +166,9 @@ public class Memory {
             memory[0xFF05] = 0; // Also reset the regular timer
         } else if (address == 0xFF46) {
             doDMATransfer(value);
+        } else if (address == 0xFF14 || address == 0xFF19 || address == 0xFF1E || address == 0xFF23) {
+            apu.handleNR4(address, value);
+            memory[address] = value;
         } else {
             memory[address] = value;
         }
