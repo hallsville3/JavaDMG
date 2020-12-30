@@ -241,7 +241,6 @@ public class PPU {
     }
 
     public void drawSprites() {
-        // TODO Fix sprites on left side of screen invisible
         class SpriteComparator implements Comparator<Integer> {
             public int compare(Integer a, Integer b) { // Sorts sprites by x coordinate
                 return memory.read(0xFE00 + 4 * a + 1) - memory.read(0xFE00 + 4 * b + 1);
@@ -269,9 +268,11 @@ public class PPU {
         sprites.sort(new SpriteComparator());
 
         ArrayList<Integer> drawnTo = new ArrayList<>(); // Only leftmost sprite gets to draw on a given square
+
         for (int sprite: sprites) {
             char yPos = (char)(memory.read(0xFE00 + 4 * sprite) - 16);
             char xPos = (char)(memory.read(0xFE00 + 4 * sprite + 1) - 8);
+
             char tile = memory.read(0xFE00 + 4 * sprite + 2);
             char atts = memory.read(0xFE00 + 4 * sprite + 3);
             boolean xFlip = (atts & 0b100000) == 0b100000;
@@ -304,12 +305,13 @@ public class PPU {
                     continue;
                 }
                 Color color = getPaletteColor(value, paletteAddress);
-                if ((xPos + j) + memory.read(0xFF44) * 160 < 144 * 160 && !drawnTo.contains((xPos + j) + memory.read(0xFF44) * 160)) {
-                    if (spritePriority && screenBuffer[(xPos + j) + memory.read(0xFF44) * 160] != Color.WHITE) {
+                char xPixel = (char)(xPos + j);
+                if (xPixel + memory.read(0xFF44) * 160 < 144 * 160 && !drawnTo.contains(xPixel + memory.read(0xFF44) * 160)) {
+                    if (spritePriority && screenBuffer[xPixel + memory.read(0xFF44) * 160] != Color.WHITE) {
                         continue;
                     }
-                    screenBuffer[(xPos + j) + memory.read(0xFF44) * 160] = color;
-                    drawnTo.add((xPos + j) + memory.read(0xFF44) * 160);
+                    screenBuffer[xPixel + memory.read(0xFF44) * 160] = color;
+                    drawnTo.add(xPixel + memory.read(0xFF44) * 160);
                 }
             }
         }
