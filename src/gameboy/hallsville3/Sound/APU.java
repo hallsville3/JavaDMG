@@ -39,7 +39,7 @@ public class APU {
         byte output = 0;
         byte volume = 1;
         for (SoundChannel channel: soundChannels) { // Adjust for signed output
-            output += (channel.doCycle(cpuCycles) - 0.5) * 2 * volume / 4;
+            output += channel.doCycle(cpuCycles) * volume / 4;
         }
 
         if (sampleFreq >= GameBoy.CLOCK_SPEED / sampleRate) {
