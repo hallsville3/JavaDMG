@@ -9,7 +9,7 @@ public class APU {
     int loc;
     int bufSize;
     int sampleRate = 48000;
-    int bitDepth = 8;
+    int bitDepth = 16;
     byte[] buffer;
 
     AudioFormat af;
@@ -38,8 +38,8 @@ public class APU {
 
         byte output = 0;
         byte volume = 1;
-        for (SoundChannel channel: soundChannels) {
-            output += channel.doCycle(cpuCycles) * volume / 4;
+        for (SoundChannel channel: soundChannels) { // Adjust for signed output
+            output += (channel.doCycle(cpuCycles) - 0.5) * 2 * volume / 4;
         }
 
         if (sampleFreq >= GameBoy.CLOCK_SPEED / sampleRate) {
@@ -49,7 +49,7 @@ public class APU {
     }
 
     public void initialize() {
-        af = new AudioFormat(sampleRate, bitDepth, 1, false, false);
+        af = new AudioFormat(sampleRate, 16, 2, true, true);
         info = new DataLine.Info(SourceDataLine.class, af);
         try {
             line = (SourceDataLine) AudioSystem.getLine(info);
@@ -58,13 +58,17 @@ public class APU {
             System.out.println("Could not acquire sound device.");
             System.exit(1);
         }
-
         line.start();
     }
 
     public void addSample(byte s){
-        buffer[loc] = s;
-        loc++;
+        // Since we are using 16 bit output
+        buffer[loc] = s; // Left CHannel
+        buffer[loc + 1] = 0;
+
+        buffer[loc + 2] = s; // Right Channel
+        buffer[loc + 3] = 0;
+        loc += 4;
         if (loc == bufSize / 2) {
             // Buffer is full
             play();
