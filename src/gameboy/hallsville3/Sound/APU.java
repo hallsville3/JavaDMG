@@ -89,6 +89,11 @@ public class APU {
                 // This is a trigger
                 soundChannels[1].trigger();
             }
+        } else if (address == 0xFF14) {
+            if ((value & 0b10000000) == 0b10000000) {
+                // This is a trigger
+                soundChannels[0].trigger();
+            }
         }
     }
 }
