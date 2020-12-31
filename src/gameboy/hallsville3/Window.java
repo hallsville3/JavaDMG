@@ -10,11 +10,13 @@ public class Window {
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setResizable(false);
 
-        Screen screen = new Screen(ppu, scale);
+        Screen screen = new Screen(ppu);
         screen.setPreferredSize(new Dimension(160 * scale, 144 * scale));
         frame.add(screen);
         frame.pack();
 
         frame.setVisible(true);
+
+        ppu.addWindow(this);
     }
 }

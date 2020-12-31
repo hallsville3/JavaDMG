@@ -1,6 +1,7 @@
 package gameboy.hallsville3;
 
 import java.awt.*;
+import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.Comparator;
 
@@ -25,23 +26,23 @@ class LCDControl {
 
 public class PPU {
     Memory memory;
-    Color[] screenBuffer; // Where the pixel data is stored
+    BufferedImage im;
     LCDControl control;
+    Window window;
     int mode, modeCount; // Mode and cycles elapsed in that mode
     int internalWindowCounter;
     int scanlineCounter;
+    int scale;
 
-    public PPU (Memory memory) {
+    public PPU (Memory memory, int sc) {
         this.memory = memory;
-        screenBuffer = new Color[160 * 144];
-        for (int i = 0; i < 160 * 144; i++) {
-            screenBuffer[i] = Color.WHITE;
-        }
+        im = new BufferedImage(160 * sc, 144 * sc, BufferedImage.TYPE_INT_RGB);
         control = new LCDControl(memory.read(0xFF40));
         mode = 2;
         modeCount = 0;
         scanlineCounter = 456; // CPU cycles per scanline
         internalWindowCounter = 0;
+        scale = sc;
     }
 
     public Color getPaletteColor(char colorID, char address) {
@@ -117,6 +118,8 @@ public class PPU {
                             if ((memory.read(0xFF41) & (1 << 4)) == 1 << 4) { // Do LCDC interrupt
                                 memory.setInterrupt(1);
                             }
+                            // Since we have a whole new screen we should repaint
+                            window.frame.repaint();
                         } else {
                             // Switch to OAM Read of next line
                             mode = 2;
@@ -157,18 +160,32 @@ public class PPU {
         }
     }
 
-    public void draw(Graphics g, int scale) {
-        for (int y = 0; y < 144; y++) {
-            for (int x = 0; x < 160; x++) {
-                g.setColor(screenBuffer[y * 160 + x]);
-                g.fillRect(x * scale, y * scale, scale, scale);
+    public int getPixel(int x, int y) {
+        return im.getRGB(x, y);
+    }
+
+    public void setPixel(int x, int y, int rgb) {
+        if (x >= 160 || y >= 144) {
+            return; // Off screen
+        }
+        for (int i = 0; i < scale; i++) {
+            for (int j = 0; j < scale; j++) {
+                im.setRGB(x * scale + i, y * scale + j, rgb);
             }
         }
     }
 
+    public void setPixel(int x, int y, Color c) {
+        setPixel(x, y, c.getRGB());
+    }
+
+    public void draw(Graphics g) {
+        g.drawImage(im, 0, 0, null);
+    }
+
     public void clearScanline() {
         for (int x = 0; x < 160; x++) {
-            screenBuffer[x + memory.read(0xFF44) * 160] = Color.WHITE;
+            setPixel(x, memory.read(0xFF44), Color.WHITE);
         }
     }
 
@@ -229,7 +246,7 @@ public class PPU {
             value |= (((byte2 & (0b10000000 >> j)) >> (7-j)) << 1);
 
             Color color = getPaletteColor(value, (char)0xFF47);
-            screenBuffer[x + memory.read(0xFF44) * 160] = color;
+            setPixel(x, memory.read(0xFF44), color);
         }
         if (windowWasDrawn) {
             internalWindowCounter++;
@@ -300,13 +317,17 @@ public class PPU {
                 Color color = getPaletteColor(value, paletteAddress);
                 char xPixel = (char)(xPos + j);
                 if (xPixel + memory.read(0xFF44) * 160 < 144 * 160 && !drawnTo.contains(xPixel + memory.read(0xFF44) * 160)) {
-                    if (spritePriority && screenBuffer[xPixel + memory.read(0xFF44) * 160] != Color.WHITE) {
+                    if (spritePriority && getPixel(xPixel, memory.read(0xFF44)) != Color.WHITE.getRGB()) {
                         continue;
                     }
-                    screenBuffer[xPixel + memory.read(0xFF44) * 160] = color;
+                    setPixel(xPixel, memory.read(0xFF44), color);
                     drawnTo.add(xPixel + memory.read(0xFF44) * 160);
                 }
             }
         }
+    }
+
+    public void addWindow(Window w) {
+        window = w;
     }
 }
