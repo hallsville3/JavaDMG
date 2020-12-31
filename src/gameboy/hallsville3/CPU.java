@@ -39,7 +39,7 @@ public class CPU {
     public boolean ime = true; // Interrupt Master Enable
     public boolean ime_scheduled = false; // IME will be re-enabled NEXT cycle
 
-    public int breakpoint = 0x0;//0xc694;
+    public int breakpoint = 0;//0xc694;
 
     public ArrayList<Character> executed = new ArrayList<>();
 
@@ -1967,10 +1967,22 @@ public class CPU {
             {
                 cycles = 4;
                 pc++;
-                halted = true;
+                if (ime) {
+                    halted = true; // Version 1
+                } else {
+                    char IF = memory.read(0xFF0F);
+                    char IE = memory.read(0xFFFF);
+                    if ((IE & IF) > 0) {
+                        halted = true; // Version 2
+                    } else {
+                        // Halt bug
+                        System.out.println("Halt bug!");
+                    }
+                }
                 break;
             }
 
+            // TODO Implement stop
             case 0x10: // STOP
             {
                 pc += 2;
@@ -2028,7 +2040,7 @@ public class CPU {
                             serviceInterrupt(i);
                             // We also need to let the cpu continue if it is halted
                             halted = false;
-                            return 20;
+                            return 20; // 20 cycles
                         }
                     }
                 }
