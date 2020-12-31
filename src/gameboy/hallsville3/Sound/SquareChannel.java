@@ -55,7 +55,7 @@ public abstract class SquareChannel implements SoundChannel {
 
         duty = dutyCycles[memory.read(nr1) >> 6];
         boolean toggle = (duty & (1 << dutyIndex)) == 1 << dutyIndex;
-        enabled = (memory.read(nr2) & 0b11100000) != 0;
+        enabled = (memory.read(nr2) & 0b11110000) != 0;
 
         if (!enabled) {
             return 0;

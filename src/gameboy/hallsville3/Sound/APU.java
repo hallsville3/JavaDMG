@@ -44,7 +44,11 @@ public class APU {
 
         if (sampleFreq >= GameBoy.CLOCK_SPEED / sampleRate) {
             sampleFreq -= GameBoy.CLOCK_SPEED / sampleRate;
-            addSample(output);
+            if ((memory.read(0xFF26) & 0b10000000) != 0) { // Volume is enabled
+                addSample(output);
+            } else {
+                addSample((byte)0);
+            }
         }
     }
 
