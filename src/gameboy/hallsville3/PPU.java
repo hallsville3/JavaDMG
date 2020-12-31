@@ -133,11 +133,9 @@ public class PPU {
                     if (modeCount >= 456) {
                         modeCount = 0;
                         memory.memory[0xFF44] = (char) (memory.read(0xFF44) + 1); // Increment LY
-                        coincidenceCheck();
 
                         if (memory.read(0xFF44) == 154) { // Switch to OAM Read mode of line 0
                             memory.write(0xFF44, (char) 0);
-                            coincidenceCheck();
                             mode = 2;
                             if ((memory.read(0xFF41) & (1 << 5)) == 1 << 5) { // Do LCDC interrupt
                                 memory.setInterrupt(1);
