@@ -5,7 +5,6 @@ import java.awt.*;
 
 public class Window {
     JFrame frame;
-    static int barHeight = 28;
     public Window(PPU ppu, int scale) {
         frame = new JFrame("GameBoy");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);

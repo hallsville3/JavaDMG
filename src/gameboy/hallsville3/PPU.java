@@ -252,18 +252,11 @@ public class PPU {
             boolean use8x16 = control.OBJSpriteSize == 1;
 
             int ySize = (use8x16 ? 16 : 8);
-            if (yPos > memory.read(0xFF44) || memory.read(0xFF44) >= yPos + ySize) {
-                // Check edge case where it is above the screen
-                if (yPos < 65000) { // If the sprite is below 65000 we are confident is has not wrapped around
-                    continue;
-                }
-                if ((char) (yPos + ySize) <= memory.read(0xFF44)) { // If the bottom of the sprite is above the scanline, continue
-                    continue;
-                }
-            }
 
-            // This sprite could be visible if it is 1 of the leftmost 10
-            sprites.add(sprite);
+            // This check determines if this line is in the sprite, and works with sprites that wrap around the top
+            if ((char)(yPos + ySize) > memory.read(0xFF44) && (char)(yPos + ySize) - memory.read(0xFF44) <= ySize) {
+                sprites.add(sprite);
+            }
             if (sprites.size() == 10) {
                 break;
             }

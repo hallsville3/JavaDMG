@@ -60,6 +60,6 @@ public abstract class SquareChannel implements SoundChannel {
         if (!enabled) {
             return 0;
         }
-        return (byte) (toggle ? envelope.getVolume() : 0);
+        return (byte) (toggle ? envelope.getVolume() : -envelope.getVolume());
     }
 }
