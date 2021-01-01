@@ -33,16 +33,21 @@ public class PPU {
     int internalWindowCounter;
     int scanlineCounter;
     int scale;
+    private int[] screenBuffer;
 
     public PPU (Memory memory, int sc) {
         this.memory = memory;
-        im = new BufferedImage(160 * sc, 144 * sc, BufferedImage.TYPE_INT_RGB);
+        GraphicsConfiguration gfxConfig = GraphicsEnvironment.
+                getLocalGraphicsEnvironment().getDefaultScreenDevice().
+                getDefaultConfiguration();
+        im = gfxConfig.createCompatibleImage(160, 144);
         control = new LCDControl(memory.read(0xFF40));
         mode = 2;
         modeCount = 0;
         scanlineCounter = 456; // CPU cycles per scanline
         internalWindowCounter = 0;
         scale = sc;
+        screenBuffer = new int[160 * 144];
     }
 
     public Color getPaletteColor(char colorID, char address) {
@@ -119,6 +124,7 @@ public class PPU {
                                 memory.setInterrupt(1);
                             }
                             // Since we have a whole new screen we should repaint
+
                             window.frame.repaint();
                         } else {
                             // Switch to OAM Read of next line
@@ -161,26 +167,27 @@ public class PPU {
     }
 
     public int getPixel(int x, int y) {
-        return im.getRGB(x, y);
+        return screenBuffer[x + 160 * y];
     }
 
     public void setPixel(int x, int y, int rgb) {
         if (x >= 160 || y >= 144) {
             return; // Off screen
         }
-        for (int i = 0; i < scale; i++) {
-            for (int j = 0; j < scale; j++) {
-                im.setRGB(x * scale + i, y * scale + j, rgb);
-            }
-        }
+        screenBuffer[x + 160 * y] = rgb;
     }
 
     public void setPixel(int x, int y, Color c) {
         setPixel(x, y, c.getRGB());
     }
 
+    public void updateImage() {
+        im.setRGB(0, 0, 160, 144, screenBuffer, 0, 160);
+    }
+
     public void draw(Graphics g) {
-        g.drawImage(im, 0, 0, null);
+        updateImage();
+        g.drawImage(im, 0, 0, 160 * scale, 144 * scale, null);
     }
 
     public void clearScanline() {
