@@ -124,7 +124,7 @@ public class PPU {
                                 memory.setInterrupt(1);
                             }
                             // Since we have a whole new screen we should repaint
-
+                            updateImage();
                             window.frame.repaint();
                         } else {
                             // Switch to OAM Read of next line
@@ -186,7 +186,6 @@ public class PPU {
     }
 
     public void draw(Graphics g) {
-        updateImage();
         g.drawImage(im, 0, 0, 160 * scale, 144 * scale, null);
     }
 
