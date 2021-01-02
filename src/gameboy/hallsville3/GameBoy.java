@@ -17,7 +17,7 @@ public class GameBoy {
 
     public GameBoy() {
         int memSize = 0xFFFF + 1;
-        int scale = 4;
+        int scale = 7;
         controller = new Controller();
         apu = new APU();
         memory = new Memory(memSize, controller, apu);
@@ -40,15 +40,22 @@ public class GameBoy {
     }
 
     public void run() {
+        long time = 0;
         while (cpu.pc < 0xFFFF) {
-            // Emulate one cycle
-            int cycles = 0;
-            cycles += cpu.handleInterrupts();
+            // Emulate one instruction
+            int interruptCycles = cpu.handleInterrupts();
             cpu.doCycle();
-            cycles += cpu.cycles;
+
+            int cycles = interruptCycles + cpu.cycles;
             timer.update(cycles);
             ppu.doCycle(cycles);
             apu.doCycle(cycles);
+            // The following code block helps to synchronize the video at the cost of smoothness
+            //if (System.currentTimeMillis() - time > 17) {
+            //    System.out.println(System.currentTimeMillis() - time);
+            //    window.repaint();
+            //    time = System.currentTimeMillis();
+            //}
         }
     }
 }
