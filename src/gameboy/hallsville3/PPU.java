@@ -125,7 +125,7 @@ public class PPU {
                             }
                             // Since we have a whole new screen we should repaint
                             updateImage();
-                            window.frame.repaint();
+                            window.repaint();
                         } else {
                             // Switch to OAM Read of next line
                             mode = 2;

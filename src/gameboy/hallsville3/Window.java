@@ -19,4 +19,8 @@ public class Window {
 
         ppu.addWindow(this);
     }
+
+    public void repaint() {
+        frame.repaint();
+    }
 }
