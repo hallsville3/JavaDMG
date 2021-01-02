@@ -8,8 +8,7 @@ import javax.sound.sampled.*;
 public class APU {
     int loc;
     int bufSize;
-    int sampleRate = 48000;
-    int bitDepth = 16;
+    int sampleRate = 44100;
     byte[] buffer;
 
     AudioFormat af;
@@ -23,8 +22,6 @@ public class APU {
 
     public APU() {
         loc = 0;
-        bufSize = 2048;
-        buffer = new byte[bufSize];
         initialize();
     }
 
@@ -58,6 +55,8 @@ public class APU {
         try {
             line = (SourceDataLine) AudioSystem.getLine(info);
             line.open(af, 2048);
+            bufSize = line.getBufferSize();
+            buffer = new byte[bufSize];
         } catch (LineUnavailableException e) {
             System.out.println("Could not acquire sound device.");
             System.exit(1);
@@ -67,13 +66,13 @@ public class APU {
 
     public void addSample(byte s){
         // Since we are using 16 bit output
-        buffer[loc] = s; // Left CHannel
+        buffer[loc] = s; // Left Channel
         buffer[loc + 1] = 0;
 
         buffer[loc + 2] = s; // Right Channel
         buffer[loc + 3] = 0;
         loc += 4;
-        if (loc == bufSize / 2) {
+        if (loc > bufSize / 2) {
             // Buffer is full
             play();
         }
