@@ -1,5 +1,3 @@
 # Project exclude paths
 /out/
-/ROMs/
-!/ROMs/readme.md
 tetris.png
