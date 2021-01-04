@@ -2,18 +2,19 @@ package gameboy.hallsville3.Sound;
 
 import gameboy.hallsville3.GameBoy;
 import gameboy.hallsville3.Memory;
+import jdk.swing.interop.SwingInterOpUtils;
 
 import javax.sound.sampled.*;
 
 public class APU {
-    int loc;
+    public int loc;
     int bufSize;
-    int sampleRate = 44100;
+    public int sampleRate = 44100;
     byte[] buffer;
 
     AudioFormat af;
     DataLine.Info info;
-    SourceDataLine line;
+    public SourceDataLine line;
 
     Memory memory;
 
@@ -54,7 +55,7 @@ public class APU {
         info = new DataLine.Info(SourceDataLine.class, af);
         try {
             line = (SourceDataLine) AudioSystem.getLine(info);
-            line.open(af, 2048);
+            line.open(af, 20000);
             bufSize = line.getBufferSize();
             buffer = new byte[bufSize];
         } catch (LineUnavailableException e) {
@@ -72,9 +73,8 @@ public class APU {
         buffer[loc + 2] = s; // Right Channel
         buffer[loc + 3] = 0;
         loc += 4;
-        if (loc > bufSize / 2) {
-            // Buffer is full
-            play();
+        if (loc >= bufSize) { // If we are going beyond the end of the buffer, dump the audio for safety
+            loc = 0;
         }
     }
 

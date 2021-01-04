@@ -13,11 +13,13 @@ public class GameBoy {
     Controller controller;
     Window window;
 
+    long time;
+
     public static int CLOCK_SPEED = 4194304;
 
     public GameBoy() {
         int memSize = 0xFFFF + 1;
-        int scale = 7;
+        int scale = 4;
         controller = new Controller();
         apu = new APU();
         memory = new Memory(memSize, controller, apu);
@@ -28,7 +30,7 @@ public class GameBoy {
         memory.memory[0xFF00] = 0xF;
 
         cpu = new CPU(memory);
-        ppu = new PPU(memory, scale);
+        ppu = new PPU(memory, scale, this);
         timer = new Timer(memory);
         window = new Window(ppu, scale);
 
@@ -40,7 +42,9 @@ public class GameBoy {
     }
 
     public void run() {
-        long time = 0;
+        time = System.nanoTime();
+        int clocks = 0;
+        double fps = 60;
         while (cpu.pc < 0xFFFF) {
             // Emulate one instruction
             int interruptCycles = cpu.handleInterrupts();
@@ -49,13 +53,41 @@ public class GameBoy {
             int cycles = interruptCycles + cpu.cycles;
             timer.update(cycles);
             ppu.doCycle(cycles);
+            clocks += cycles;
             apu.doCycle(cycles);
-            // The following code block helps to synchronize the video at the cost of smoothness
-            //if (System.currentTimeMillis() - time > 17) {
-            //    System.out.println(System.currentTimeMillis() - time);
-            //    window.repaint();
-            //    time = System.currentTimeMillis();
-            //}
+
+            if (clocks > CLOCK_SPEED / fps) {
+                window.repaint(); // This call blocks until the screen is all done repainting
+                vsync(fps);
+
+                // Now that we have repainted we should add audio to be played
+                apu.play();
+
+                clocks -= CLOCK_SPEED / fps;
+            }
         }
+    }
+
+    public void vsync(double fps) {
+        // This method delays emulation to sync video to fps hz
+        // It also reloads the audio buffer with enough audio
+        long newTime = System.nanoTime();
+        long dt = newTime - time; // Time since last sync
+
+        long timeToSleep = Math.round(1000000000.0 / fps) - dt;
+
+        long diff = 0;
+        if (timeToSleep > 0) {
+            try {
+                long t1 = System.nanoTime();
+                Thread.sleep(timeToSleep / 1000000, (int)(timeToSleep % 1000000));
+                long t2 = System.nanoTime();
+                diff = t2 - t1 - timeToSleep;
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
+        time = System.nanoTime() - diff;
     }
 }

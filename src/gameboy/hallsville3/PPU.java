@@ -35,7 +35,9 @@ public class PPU {
     int scale;
     private int[] screenBuffer;
 
-    public PPU (Memory memory, int sc) {
+    GameBoy gameboy;
+
+    public PPU (Memory memory, int sc, GameBoy gb) {
         this.memory = memory;
         GraphicsConfiguration gfxConfig = GraphicsEnvironment.
                 getLocalGraphicsEnvironment().getDefaultScreenDevice().
@@ -48,6 +50,8 @@ public class PPU {
         internalWindowCounter = 0;
         scale = sc;
         screenBuffer = new int[160 * 144];
+
+        gameboy = gb;
     }
 
     public Color getPaletteColor(char colorID, char address) {
@@ -125,7 +129,6 @@ public class PPU {
                             }
                             // Since we have a whole new screen we should repaint
                             updateImage();
-                            window.repaint();
                         } else {
                             // Switch to OAM Read of next line
                             mode = 2;
