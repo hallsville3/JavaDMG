@@ -15,9 +15,7 @@ public class CPU {
     public Memory memory;       //RAM
 
     public char sp, pc;         //Stack and Program Counter Registers
-    public char[] stack;        //The stack
     public char[] registers;    //Registers
-    public char[] screenData;   //The Screen
 
     public char delay_timer;    //The delay timer (Counts down at 60hz)
     public char sound_timer;    //The sound timer (Counts down at 60hz, buzzes at 0))
@@ -39,14 +37,7 @@ public class CPU {
     public boolean ime = true; // Interrupt Master Enable
     public boolean ime_scheduled = false; // IME will be re-enabled NEXT cycle
 
-    public int breakpoint = 0;//0xc694;
-
-    public ArrayList<Character> executed = new ArrayList<>();
-
-
-    public boolean[] keys;      //The state of each key
-
-    public boolean drawFlag;
+    public int breakpoint = 0;
 
     public long oldTime;
 
@@ -54,17 +45,12 @@ public class CPU {
 
     public boolean halted = false; // Gets set to true when HALT is executed
 
-    //public Beeper b;
-
-    public int clock;
-
     public CPU(Memory mem) {
         memory = mem;
         initialize();
     }
 
     public void initialize() {
-        //4194304 ops per second
         opcode = 0;
 
         pc = 0x100; //256
@@ -72,21 +58,10 @@ public class CPU {
         registers = new char[8]; //BCDEHLFA
         setBootValues();
 
-        screenData = new char[160 * 144]; //160 pixels wide, 144 pixels tall
-        resetScreen();
-
         delay_timer = 0;
         sound_timer = 0;
-        
-        //setupGraphics();
-
-        //setKeys();
 
         oldTime = System.currentTimeMillis();
-
-        //setupFontMemory();
-
-        //b = new Beeper(this);
     }
 
     public void setBootValues() {
@@ -138,8 +113,6 @@ public class CPU {
         byte[] gameData = Files.readAllBytes(p);
 
         memory.loadCartridge(gameData);
-
-        System.out.println("Successfully Loaded " + game + ".");
     }
 
     public boolean isNegative(char x) {
@@ -2161,9 +2134,5 @@ public class CPU {
 
     public void resetFlags() {
         registers[6] = 0x0;
-    }
-
-    public void resetScreen() {
-        screenData = new char[160 * 144]; //160 pixels wide, 144 pixels tall
     }
 }
