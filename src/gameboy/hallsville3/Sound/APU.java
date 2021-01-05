@@ -37,27 +37,29 @@ public class APU {
         byte left = 0;
         byte right = 0;
         byte volume = 1;
-        for (SoundChannel channel: soundChannels) { // Adjust for signed output
-            int output = channel.doCycle(cpuCycles) * volume / 4;
-            boolean rightChannel = (memory.read(0xFF25) >> (channel.getID()) & 0b1) == 0b1;
-            boolean leftChannel = (memory.read(0xFF25) >> (4 + channel.getID()) & 0b1) == 0b1;
+        if ((memory.read(0xFF26) & 0b10000000) != 0) { // Volume is enabled
+            for (SoundChannel channel : soundChannels) { // Adjust for signed output
+                int output = channel.doCycle(cpuCycles) * volume / 4;
+                boolean rightChannel = (memory.read(0xFF25) >> (channel.getID()) & 0b1) == 0b1;
+                boolean leftChannel = (memory.read(0xFF25) >> (4 + channel.getID()) & 0b1) == 0b1;
 
-            if (rightChannel) {
-                right += output;
-            }
+                if (rightChannel) {
+                    right += output;
+                }
 
-            if (leftChannel) {
-                left += output;
+                if (leftChannel) {
+                    left += output;
+                }
             }
         }
 
+        // Now scale left and right by their respective volumes
+        right *= memory.read(0xFF24) & 0b111;
+        left *= (memory.read(0xFF24) >> 4) & 0b111;
+
         if (sampleFreq >= GameBoy.CLOCK_SPEED / sampleRate) {
             sampleFreq -= GameBoy.CLOCK_SPEED / sampleRate;
-            if ((memory.read(0xFF26) & 0b10000000) != 0) { // Volume is enabled
-                addSample(left, right);
-            } else {
-                addSample((byte)0, (byte)0);
-            }
+            addSample(left, right);
         }
     }
 
