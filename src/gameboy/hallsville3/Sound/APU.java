@@ -34,18 +34,29 @@ public class APU {
     public void doCycle(int cpuCycles) {
         sampleFreq += cpuCycles;
 
-        byte output = 0;
+        byte left = 0;
+        byte right = 0;
         byte volume = 1;
         for (SoundChannel channel: soundChannels) { // Adjust for signed output
-            output += channel.doCycle(cpuCycles) * volume / 4;
+            int output = channel.doCycle(cpuCycles) * volume / 4;
+            boolean leftChannel = (memory.read(0xFF25) >> (channel.getID()) & 0b1) == 0b1;
+            boolean rightChannel = (memory.read(0xFF25) >> (4 + channel.getID()) & 0b1) == 0b1;
+
+            if (leftChannel) {
+                left += output;
+            }
+
+            if (rightChannel) {
+                right += output;
+            }
         }
 
         if (sampleFreq >= GameBoy.CLOCK_SPEED / sampleRate) {
             sampleFreq -= GameBoy.CLOCK_SPEED / sampleRate;
             if ((memory.read(0xFF26) & 0b10000000) != 0) { // Volume is enabled
-                addSample(output);
+                addSample(left, right);
             } else {
-                addSample((byte)0);
+                addSample((byte)0, (byte)0);
             }
         }
     }
@@ -65,12 +76,12 @@ public class APU {
         line.start();
     }
 
-    public void addSample(byte s){
+    public void addSample(byte left, byte right){
         // Since we are using 16 bit output
-        buffer[loc] = s; // Left Channel
+        buffer[loc] = left; // Left Channel
         buffer[loc + 1] = 0;
 
-        buffer[loc + 2] = s; // Right Channel
+        buffer[loc + 2] = right; // Right Channel
         buffer[loc + 3] = 0;
         loc += 4;
         if (loc >= bufSize) { // If we are going beyond the end of the buffer, dump the audio for safety

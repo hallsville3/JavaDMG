@@ -56,8 +56,8 @@ public class GameBoy {
             clocks += cycles;
             apu.doCycle(cycles);
 
-            if (clocks > CLOCK_SPEED / fps) {
-                window.repaint(); // This call blocks until the screen is all done repainting
+            if (clocks >= CLOCK_SPEED / fps) {
+                window.repaint();
                 vsync(fps);
 
                 // Now that we have repainted we should add audio to be played

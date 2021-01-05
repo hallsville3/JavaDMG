@@ -6,4 +6,8 @@ public class Channel2 extends SquareChannel {
     public Channel2(Memory mem) {
         super(mem, (char)(0xFF15));
     }
+
+    public int getID() {
+        return 1;
+    }
 }

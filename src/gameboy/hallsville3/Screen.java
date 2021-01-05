@@ -12,7 +12,6 @@ public class Screen extends JPanel {
     @Override
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
-        setBackground(new Color(0, 0,0));
         ppu.draw(g);
     }
 
