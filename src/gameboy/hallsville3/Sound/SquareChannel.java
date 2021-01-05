@@ -30,10 +30,10 @@ public abstract class SquareChannel extends SoundChannel {
 
     public void updateTimer(int cpuCycles) {
         timer -= cpuCycles;
-        if (timer <= 0) {
+        while (timer <= 0) {
             dutyIndex = (dutyIndex + 1) % 8;
             int x = memory.read(nr3) | ((memory.read(nr4) & 0b111) << 8);
-            timer = 4 * (2048 - x);
+            timer += 4 * (2048 - x);
         }
     }
 

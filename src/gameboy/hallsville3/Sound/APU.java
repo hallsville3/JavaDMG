@@ -2,14 +2,13 @@ package gameboy.hallsville3.Sound;
 
 import gameboy.hallsville3.GameBoy;
 import gameboy.hallsville3.Memory;
-import jdk.swing.interop.SwingInterOpUtils;
 
 import javax.sound.sampled.*;
 
 public class APU {
     public int loc;
     int bufSize;
-    public int sampleRate = 44100;
+    public int sampleRate = 48000;
     byte[] buffer;
 
     AudioFormat af;
@@ -21,8 +20,11 @@ public class APU {
     SoundChannel[] soundChannels;
     int sampleFreq;
 
+    int oversample;
+
     public APU() {
         loc = 0;
+        oversample = 4;
         initialize();
     }
 
@@ -36,10 +38,9 @@ public class APU {
 
         byte left = 0;
         byte right = 0;
-        byte volume = 1;
         if ((memory.read(0xFF26) & 0b10000000) != 0) { // Volume is enabled
             for (SoundChannel channel : soundChannels) { // Adjust for signed output
-                int output = channel.doCycle(cpuCycles) * volume / 4;
+                int output = channel.doCycle(cpuCycles) / 4;
                 boolean rightChannel = (memory.read(0xFF25) >> (channel.getID()) & 0b1) == 0b1;
                 boolean leftChannel = (memory.read(0xFF25) >> (4 + channel.getID()) & 0b1) == 0b1;
 
@@ -57,8 +58,8 @@ public class APU {
         right *= memory.read(0xFF24) & 0b111;
         left *= (memory.read(0xFF24) >> 4) & 0b111;
 
-        if (sampleFreq >= GameBoy.CLOCK_SPEED / sampleRate) {
-            sampleFreq -= GameBoy.CLOCK_SPEED / sampleRate;
+        while (sampleFreq >= GameBoy.CLOCK_SPEED / sampleRate / oversample) {
+            sampleFreq -= GameBoy.CLOCK_SPEED / sampleRate / oversample;
             addSample(left, right);
         }
     }
@@ -91,8 +92,44 @@ public class APU {
         }
     }
 
+    public static byte interpolateLinear(int x0, int x1, double t) {
+        return (byte)(t * x0 + (1 - t) * x1);
+    }
+
+    public byte[] getInterpolatedBuffer() {
+        byte[] interp = new byte[buffer.length];
+        int s = 0;
+        for (double i = 0; i < loc - oversample * 4; i += oversample * 4) { // 4 for 2 channel 16 bit audio
+            double t = i / loc; // Ranges from 0 to 1 through original samples
+            int l = (int) (t * loc) / 4 * 4;
+            int r = l + 4;
+            t = t * loc - l;
+
+            interp[4 * s] = interpolateLinear(buffer[l], buffer[r], t);
+            interp[4 * s + 1] = (byte)0;
+            interp[4 * s + 2] = interpolateLinear(buffer[l + 2], buffer[r + 2], t);
+            interp[4 * s + 3] = (byte)0;
+            s++;
+        }
+        return interp;
+    }
+
+    public byte[] dropInterpolate() {
+        byte[] interp = new byte[buffer.length];
+        int s = 0;
+        for (double i = 0; i < loc; i += oversample * 4) { // 4 for 2 channel 16 bit audio
+            double t = i / loc; // Ranges from 0 to 1 through original samples
+            interp[4 * s] = buffer[(int) (t * loc) / 4 * 4];
+            interp[4 * s + 1] = buffer[(int) (t * loc) / 4 * 4 + 1];
+            interp[4 * s + 2] = buffer[(int) (t * loc) / 4 * 4 + 2];
+            interp[4 * s + 3] = buffer[(int) (t * loc) / 4 * 4 + 3];
+            s++;
+        }
+        return interp;
+    }
+
     public void play() {
-        line.write(buffer, 0, loc);
+        line.write(dropInterpolate(), 0, loc / oversample / 4 * 4);
         loc = 0;
     }
 
@@ -117,7 +154,7 @@ public class APU {
         } else if (address == 0xFF1E) {
             if ((value & 0b10000000) == 0b10000000) {
                 // This is a trigger
-                //soundChannels[2].trigger();
+                soundChannels[2].trigger();
             }
         }
     }

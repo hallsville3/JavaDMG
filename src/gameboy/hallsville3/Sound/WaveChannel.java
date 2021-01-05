@@ -22,11 +22,11 @@ public abstract class WaveChannel extends SoundChannel {
 
     public void updateTimer(int cpuCycles) {
         timer -= cpuCycles;
-        if (timer <= 0) {
+        while (timer <= 0) {
             waveTableIndex = (waveTableIndex + 1) % 32; // Increment the waveTableIndex
 
             int x = memory.read(nr3) | ((memory.read(nr4) & 0b111) << 8);
-            timer = 2 * (2048 - x);
+            timer += 2 * (2048 - x);
         }
     }
 
@@ -69,7 +69,8 @@ public abstract class WaveChannel extends SoundChannel {
         counter.doCycle(cpuCycles);
 
         int volume;
-        if (counter.isEnabled()) {
+        boolean DAC = (memory.read(nr0) & 0b10000000) == 0b10000000;
+        if (counter.isEnabled() && DAC) {
             volume = getVolume();
         } else {
             volume = 0;
