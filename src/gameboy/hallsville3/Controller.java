@@ -6,9 +6,14 @@ public class Controller implements KeyListener {
     char directions;
     char buttons;
     Memory memory;
-    public Controller() {
+    GameBoy gb;
+
+    boolean reset;
+    public Controller(GameBoy gb) {
         directions = 0xF;
         buttons = 0xF;
+        this.gb = gb;
+        reset = false;
     }
 
     public void setMemory(Memory mem) {
@@ -36,6 +41,8 @@ public class Controller implements KeyListener {
             case KeyEvent.VK_E      -> {buttons &= ~(1 << 1); isButton = true;}
             case KeyEvent.VK_SLASH  -> {buttons &= ~(1 << 2); isButton = true;}
             case KeyEvent.VK_ENTER  -> {buttons &= ~(1 << 3); isButton = true;}
+
+            case KeyEvent.VK_R -> {reset = true;}
         }
 
         if (isButton && (memory.read(0xFF00) | 0b100000) == 0b100000) {
@@ -72,5 +79,9 @@ public class Controller implements KeyListener {
             bits = buttons;
         }
         return (char)((value & 0xF0) | bits & 0xF);
+    }
+
+    public boolean doReset() {
+        return reset;
     }
 }

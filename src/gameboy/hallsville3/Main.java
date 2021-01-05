@@ -6,8 +6,9 @@ public class Main {
     public static void main(String[] args) throws IOException, InterruptedException {
         GameBoy gb = new GameBoy();
         String game = "ROMS/kirby.gb";
+        //game = "ROMs/castlevania2.gb";
         //game = "ROMs/zelda.gb";
-        //game = "ROMs/mario.gb";
+        game = "ROMs/mario.gb";
         //game = "ROMs/halt_bug.gb";
         //game = "ROMs/mario2.gb";
         //game = "ROMs/tetris.gb";

@@ -13,14 +13,20 @@ public class GameBoy {
     Controller controller;
     Window window;
 
+    String game;
+
     long time;
 
     public static int CLOCK_SPEED = 4194304;
 
     public GameBoy() {
+        reset();
+    }
+
+    public void reset() {
         int memSize = 0xFFFF + 1;
         int scale = 4;
-        controller = new Controller();
+        controller = new Controller(this);
         apu = new APU();
         memory = new Memory(memSize, controller, apu);
 
@@ -38,10 +44,11 @@ public class GameBoy {
     }
 
     public void loadGame(String game) throws IOException {
+        this.game = game;
         cpu.loadGame(game);
     }
 
-    public void run() {
+    public void run() throws IOException {
         time = System.nanoTime();
         int clocks = 0;
         double fps = 60;
@@ -64,6 +71,11 @@ public class GameBoy {
                 apu.play();
 
                 clocks -= CLOCK_SPEED / fps;
+            }
+
+            if (controller.doReset()) {
+                reset();
+                cpu.loadGame(game);
             }
         }
     }
