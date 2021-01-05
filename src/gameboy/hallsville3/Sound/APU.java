@@ -39,15 +39,15 @@ public class APU {
         byte volume = 1;
         for (SoundChannel channel: soundChannels) { // Adjust for signed output
             int output = channel.doCycle(cpuCycles) * volume / 4;
-            boolean leftChannel = (memory.read(0xFF25) >> (channel.getID()) & 0b1) == 0b1;
-            boolean rightChannel = (memory.read(0xFF25) >> (4 + channel.getID()) & 0b1) == 0b1;
-
-            if (leftChannel) {
-                left += output;
-            }
+            boolean rightChannel = (memory.read(0xFF25) >> (channel.getID()) & 0b1) == 0b1;
+            boolean leftChannel = (memory.read(0xFF25) >> (4 + channel.getID()) & 0b1) == 0b1;
 
             if (rightChannel) {
                 right += output;
+            }
+
+            if (leftChannel) {
+                left += output;
             }
         }
 
