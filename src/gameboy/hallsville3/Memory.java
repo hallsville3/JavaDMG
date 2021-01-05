@@ -169,6 +169,9 @@ public class Memory {
         } else if (address == 0xFF14 || address == 0xFF19 || address == 0xFF1E || address == 0xFF23) {
             apu.handleNR4(address, value);
             memory[address] = value;
+        } else if (address == 0xFF11 || address == 0xFF16 || address == 0xFF1B) {
+            apu.handleNR1(address);
+            memory[address] = value;
         } else {
             memory[address] = value;
         }

@@ -28,7 +28,7 @@ public class APU {
 
     public void setMemory(Memory mem) {
         memory = mem;
-        soundChannels = new SoundChannel[] {new Channel1(memory), new Channel2(memory)};
+        soundChannels = new SoundChannel[] {new Channel1(memory), new Channel2(memory), new Channel3(memory)};
     }
 
     public void doCycle(int cpuCycles) {
@@ -104,16 +104,33 @@ public class APU {
 
     public void handleNR4(char address, char value) {
         // Checks if any channels need to be triggered
-        if (address == 0xFF19) {
-            if ((value & 0b10000000) == 0b10000000) {
-                // This is a trigger
-                soundChannels[1].trigger();
-            }
-        } else if (address == 0xFF14) {
+        if (address == 0xFF14) {
             if ((value & 0b10000000) == 0b10000000) {
                 // This is a trigger
                 soundChannels[0].trigger();
             }
+        } else if (address == 0xFF19) {
+            if ((value & 0b10000000) == 0b10000000) {
+                // This is a trigger
+                soundChannels[1].trigger();
+            }
+        } else if (address == 0xFF1E) {
+            if ((value & 0b10000000) == 0b10000000) {
+                // This is a trigger
+                //soundChannels[2].trigger();
+            }
         }
+    }
+
+    public void handleNR1(char address) {
+        //Checks if either square channel or the wave channel needs to be reloaded
+        if (address == 0xFF11) {
+            ((SquareChannel)soundChannels[0]).load();
+        } else if (address == 0xFF16) {
+            ((SquareChannel)soundChannels[1]).load();
+        } else if (address == 0xFF1B) {
+            ((WaveChannel)soundChannels[2]).load();
+        }
+
     }
 }

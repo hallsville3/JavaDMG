@@ -17,9 +17,9 @@ public class VolumeEnvelope {
 
     public Memory memory;
 
-    public VolumeEnvelope(Memory mem, char n) {
+    public VolumeEnvelope(Memory mem, char nr0) {
         memory = mem;
-        nr2 = n;
+        nr2 = (char)(nr0 + 2);
         volume = 15;
     }
 
@@ -29,7 +29,7 @@ public class VolumeEnvelope {
         }
         timer += cpuCycles;
         if (timer >= GameBoy.CLOCK_SPEED / 64 * sweep) {
-            timer = 0;
+            timer -= GameBoy.CLOCK_SPEED / 64 * sweep;
             volume += mode;
             if (volume == 16) {
                 finished = true;

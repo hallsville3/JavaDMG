@@ -2,36 +2,30 @@ package gameboy.hallsville3.Sound;
 
 import gameboy.hallsville3.Memory;
 
-public abstract class SquareChannel implements SoundChannel {
-    public char nr0, nr1, nr2, nr3, nr4;
+public abstract class SquareChannel extends SoundChannel {
     public int timer;
 
     public int dutyIndex;
     public int duty;
     public int[] dutyCycles;
 
-    public int soundLength;
     public Memory memory;
     public VolumeEnvelope envelope;
+    public LengthCounter counter;
 
     public boolean enabled;
 
     public SquareChannel(Memory mem, char n) {
+        super(n);
         memory = mem;
         timer = 0;
         dutyIndex = 0;
         duty = 0;
-        soundLength = 0;
         dutyCycles = new int[] {0b00000001, 0b10000001, 0b10000111, 0b01111110};
         enabled = false;
 
-        nr0 = n;
-        nr1 = (char)(n+1);
-        nr2 = (char)(n+2);
-        nr3 = (char)(n+3);
-        nr4 = (char)(n+4);
-
-        envelope = new VolumeEnvelope(memory, nr2);
+        envelope = new VolumeEnvelope(memory, nr0);
+        counter = new LengthCounter(memory, nr0, 0b00111111);
     }
 
     public void updateTimer(int cpuCycles) {
@@ -40,7 +34,6 @@ public abstract class SquareChannel implements SoundChannel {
             dutyIndex = (dutyIndex + 1) % 8;
             int x = memory.read(nr3) | ((memory.read(nr4) & 0b111) << 8);
             timer = 4 * (2048 - x);
-            soundLength = memory.read(nr1) & 0b00111111;
         }
     }
 
@@ -48,10 +41,22 @@ public abstract class SquareChannel implements SoundChannel {
         envelope.trigger();
     }
 
+    public void load() {
+        counter.load();
+    }
+
     public byte doCycle(int cpuCycles) {
         updateTimer(cpuCycles);
 
         envelope.doCycle(cpuCycles);
+        counter.doCycle(cpuCycles);
+
+        int volume;
+        if (counter.isEnabled()) {
+            volume = envelope.getVolume();
+        } else {
+            volume = 0;
+        }
 
         duty = dutyCycles[memory.read(nr1) >> 6];
         boolean toggle = (duty & (1 << dutyIndex)) == 1 << dutyIndex;
@@ -60,6 +65,6 @@ public abstract class SquareChannel implements SoundChannel {
         if (!enabled) {
             return 0;
         }
-        return (byte) (toggle ? envelope.getVolume() : -envelope.getVolume());
+        return (byte) (toggle ? volume : -volume);
     }
 }
