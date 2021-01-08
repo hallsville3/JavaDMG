@@ -44,10 +44,6 @@ public class APU {
                 boolean rightChannel = (memory.read(0xFF25) >> (channel.getID()) & 0b1) == 0b1;
                 boolean leftChannel = (memory.read(0xFF25) >> (4 + channel.getID()) & 0b1) == 0b1;
 
-                if (channel.getID() != 3) {
-                    continue;
-                }
-
                 if (rightChannel) {
                     right += output;
                 }
