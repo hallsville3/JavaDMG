@@ -15,7 +15,7 @@ public class LengthCounter {
     public Memory memory;
 
     public LengthCounter(Memory mem, char nr0, int mask) {
-        // lengthMask is either 0b111111 or 0b11111111 depending on channel type
+        // lengthMask is either 0b00111111 or 0b11111111 depending on channel type
         lengthMask = mask;
         memory = mem;
         nr1 = (char)(nr0 + 1);
@@ -38,7 +38,8 @@ public class LengthCounter {
     }
 
     public void load() {
-        counter = memory.read(nr1) & lengthMask;
+        counter = (lengthMask + 1) - (memory.read(nr1) & lengthMask); // 64 - L or 256 - L
+
         if (counter > 0) {
             enabled = true;
         }

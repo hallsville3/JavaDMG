@@ -8,7 +8,8 @@ public class Main {
         String game = "ROMS/kirby.gb";
         //game = "ROMs/castlevania2.gb";
         //game = "ROMs/zelda.gb";
-        game = "ROMs/mario.gb";
+        //game = "ROMs/mario.gb";
+        //game = "ROMs/sound/08-len ctr during power.gb";
         //game = "ROMs/halt_bug.gb";
         //game = "ROMs/mario2.gb";
         //game = "ROMs/tetris.gb";

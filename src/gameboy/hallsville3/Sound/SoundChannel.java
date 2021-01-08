@@ -11,5 +11,6 @@ public abstract class SoundChannel {
     }
     abstract byte doCycle(int cpuCycles);
     abstract void trigger();
+    abstract void load();
     abstract int getID();
 }
