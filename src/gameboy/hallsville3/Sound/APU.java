@@ -24,7 +24,7 @@ public class APU {
 
     public APU() {
         loc = 0;
-        oversample = 1;
+        oversample = 8;
         initialize();
     }
 
@@ -69,9 +69,9 @@ public class APU {
         info = new DataLine.Info(SourceDataLine.class, af);
         try {
             line = (SourceDataLine) AudioSystem.getLine(info);
-            line.open(af, 20000);
+            line.open(af, 40000);
             bufSize = line.getBufferSize();
-            buffer = new byte[bufSize];
+            buffer = new byte[100000];
         } catch (LineUnavailableException e) {
             System.out.println("Could not acquire sound device.");
             System.exit(1);
@@ -87,7 +87,7 @@ public class APU {
         buffer[loc + 2] = right; // Right Channel
         buffer[loc + 3] = 0;
         loc += 4;
-        if (loc >= bufSize) { // If we are going beyond the end of the buffer, dump the audio for safety
+        if (loc >= buffer.length) { // If we are going beyond the end of the buffer, dump the audio for safety
             loc = 0;
         }
     }
@@ -96,40 +96,28 @@ public class APU {
         return (byte)(t * x0 + (1 - t) * x1);
     }
 
-    public byte[] getInterpolatedBuffer() {
-        byte[] interp = new byte[buffer.length];
-        int s = 0;
-        for (double i = 0; i < loc - oversample * 4; i += oversample * 4) { // 4 for 2 channel 16 bit audio
-            double t = i / loc; // Ranges from 0 to 1 through original samples
+    public byte[] getInterpolatedBuffer(int newSampleCount) {
+        byte[] interp = new byte[newSampleCount];
+        for (int s = 0; s < newSampleCount / 4; s++) { // 4 for 2 channel 16 bit audio
+            double t = 4. * s / newSampleCount; // Ranges from 0 to 1 through original samples
             int l = (int) (t * loc) / 4 * 4;
             int r = l + 4;
-            t = t * loc - l;
-
+            t = (t * loc - l) / 4;
             interp[4 * s] = interpolateLinear(buffer[l], buffer[r], t);
             interp[4 * s + 1] = (byte)0;
             interp[4 * s + 2] = interpolateLinear(buffer[l + 2], buffer[r + 2], t);
             interp[4 * s + 3] = (byte)0;
-            s++;
-        }
-        return interp;
-    }
-
-    public byte[] dropInterpolate() {
-        byte[] interp = new byte[buffer.length];
-        int s = 0;
-        for (double i = 0; i < loc; i += oversample * 4) { // 4 for 2 channel 16 bit audio
-            double t = i / loc; // Ranges from 0 to 1 through original samples
-            interp[4 * s] = buffer[(int) (t * loc) / 4 * 4];
-            interp[4 * s + 1] = buffer[(int) (t * loc) / 4 * 4 + 1];
-            interp[4 * s + 2] = buffer[(int) (t * loc) / 4 * 4 + 2];
-            interp[4 * s + 3] = buffer[(int) (t * loc) / 4 * 4 + 3];
-            s++;
         }
         return interp;
     }
 
     public void play() {
-        line.write(dropInterpolate(), 0, loc / oversample / 4 * 4);
+        int newSampleCount = 3216;
+        if (newSampleCount > loc) {
+            newSampleCount = loc;
+        }
+        newSampleCount = (newSampleCount / 4) * 4;
+        line.write(getInterpolatedBuffer(newSampleCount), 0, newSampleCount);
         loc = 0;
     }
 
